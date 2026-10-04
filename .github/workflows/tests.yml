@@ -1,0 +1,28 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: task2_api
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: task2_api/requirements.txt
+
+      # Модель кэшируем между запусками
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/huggingface
+          key: hf-model-rubert-tiny2
+
+      - run: pip install -r requirements.txt
+      - run: pytest -v

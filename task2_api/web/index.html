@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Тональность отзывов</title>
+  <style>
+    :root {
+      --page: #f3f5f4;
+      --surface: #ffffff;
+      --ink: #1c2428;
+      --muted: #5e696e;
+      --line: #dce1e3;
+      --good: #1e7a4f;
+      --calm: #8d979c;
+      --bad: #c23b2e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font: 16px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    }
+    main { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; }
+    a { color: inherit; }
+    :focus-visible { outline: 3px solid #2f6fdb; outline-offset: 2px; }
+
+    header { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; justify-content: space-between; }
+    h1 { margin: 0; font-size: 28px; line-height: 1.2; font-weight: 650; letter-spacing: -0.01em; }
+    .lead { margin: 4px 0 0; color: var(--muted); }
+    .links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .links a {
+      padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px;
+      background: var(--surface); text-decoration: none; font-size: 15px;
+    }
+    .links a:hover { border-color: var(--ink); }
+
+    /* Шкала настроения за сессию — главный элемент страницы */
+    .session { margin: 32px 0; }
+    .session-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+    h2 { margin: 0; font-size: 18px; font-weight: 600; }
+    .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .count b { color: var(--ink); }
+    .restart { margin: 12px 0 0; font-size: 15px; }
+    .restart a { color: var(--muted); }
+    .bar {
+      display: flex; height: 44px; margin: 12px 0 10px; border-radius: 4px; overflow: hidden;
+      background: var(--line);
+    }
+    .bar span { min-width: 0; }
+    .bar .positive { background: var(--good); }
+    .bar .neutral { background: var(--calm); }
+    .bar .negative { background: var(--bad); }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 0; padding: 0; list-style: none; }
+    .legend li { display: flex; align-items: baseline; gap: 8px; }
+    .legend b { font-size: 22px; font-variant-numeric: tabular-nums; }
+    .legend .share { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .empty { color: var(--muted); margin: 0; }
+
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+    .dot.positive { background: var(--good); }
+    .dot.neutral { background: var(--calm); }
+    .dot.negative { background: var(--bad); }
+
+    form { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: 600; }
+    textarea {
+      width: 100%; min-height: 150px; padding: 12px; resize: vertical;
+      font: inherit; color: inherit; border: 1px solid var(--line); border-radius: 6px;
+    }
+    button {
+      margin-top: 12px; padding: 11px 20px; border: 0; border-radius: 6px;
+      background: var(--ink); color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: #33424a; }
+    .error { margin: 12px 0 0; color: var(--bad); }
+
+    .last { margin-top: 32px; }
+    .table-wrap { overflow-x: auto; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+    th, td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { font-size: 14px; font-weight: 600; color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+    td.label { white-space: nowrap; }
+    td.sure { width: 150px; font-variant-numeric: tabular-nums; }
+    .meter { height: 4px; margin-top: 6px; background: var(--line); border-radius: 2px; }
+    .meter span { display: block; height: 100%; background: var(--ink); border-radius: 2px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Тональность отзывов</h1>
+      <p class="lead">Модель rubert-tiny2 определяет, доволен покупатель или нет.</p>
+    </div>
+    <nav class="links">
+      <a href="{{.GrafanaURL}}" target="_blank" rel="noopener">Мониторинг в Grafana</a>
+      <a href="{{.DocsURL}}" target="_blank" rel="noopener">Документация API</a>
+    </nav>
+  </header>
+
+  <section class="session" aria-labelledby="session-title">
+    <div class="session-head">
+      <h2 id="session-title">Настроение покупателей за сессию</h2>
+      <span class="count">Проверено отзывов: <b>{{.Session.Total}}</b></span>
+    </div>
+    <div class="bar" role="img" aria-label="Позитивных {{.Session.Positive}}, нейтральных {{.Session.Neutral}}, негативных {{.Session.Negative}}">
+      {{if .Session.Total}}
+      <span class="positive" style="flex-grow: {{.Session.Positive}}"></span>
+      <span class="neutral" style="flex-grow: {{.Session.Neutral}}"></span>
+      <span class="negative" style="flex-grow: {{.Session.Negative}}"></span>
+      {{end}}
+    </div>
+    {{if .Session.Total}}
+    <ul class="legend">
+      <li><span class="dot positive"></span>позитивные <b>{{.Session.Positive}}</b><span class="share">{{.Session.Percent .Session.Positive}}%</span></li>
+      <li><span class="dot neutral"></span>нейтральные <b>{{.Session.Neutral}}</b><span class="share">{{.Session.Percent .Session.Neutral}}%</span></li>
+      <li><span class="dot negative"></span>негативные <b>{{.Session.Negative}}</b><span class="share">{{.Session.Percent .Session.Negative}}%</span></li>
+    </ul>
+    <p class="restart"><a href="/">Начать заново</a></p>
+    {{else}}
+    <p class="empty">Проверьте первые отзывы, и здесь появится общая картина.</p>
+    {{end}}
+  </section>
+
+  <form method="post" action="/">
+    <label for="reviews">Отзывы покупателей, каждый с новой строки</label>
+    <textarea id="reviews" name="reviews" placeholder="Привезли на день раньше, всё целое.&#10;Продавец нахамил, больше не приду." autofocus>{{.Input}}</textarea>
+    <!-- Сводка сессии едет вместе с формой: сервер ничего не хранит -->
+    <input type="hidden" name="session_positive" value="{{.Session.Positive}}">
+    <input type="hidden" name="session_neutral" value="{{.Session.Neutral}}">
+    <input type="hidden" name="session_negative" value="{{.Session.Negative}}">
+    <button type="submit">Определить тональность</button>
+    {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  </form>
+
+  {{if .Rows}}
+  <section class="last" aria-labelledby="last-title">
+    <h2 id="last-title">Последняя проверка</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Отзыв</th><th>Тональность</th><th>Уверенность</th></tr></thead>
+        <tbody>
+        {{range .Rows}}
+          <tr>
+            <td>{{.Text}}</td>
+            <td class="label"><span class="dot {{.Label}}"></span>{{.LabelRU}}</td>
+            <td class="sure">{{.Confidence}}%<div class="meter"><span style="width: {{.Confidence}}%"></span></div></td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{end}}
+</main>
+</body>
+</html>
